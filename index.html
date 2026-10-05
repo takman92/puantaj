@@ -333,7 +333,8 @@ function updateMonthLive(){
   const tElapsed=isCur?todayElapsed():0;
   const todayChecked=isCur&&set.has(t.getDate());
   const workedRealtime=checked*base+(todayChecked?0:Math.max(0,tElapsed));
-  const realtimeRemaining=target-workedRealtime;
+  const diffSum=isCur?diffStats().sum:0;
+  const realtimeRemaining=target-workedRealtime-diffSum;
   $("mo-remdays").textContent=remDays;
   $("mo-dailyavg").textContent=fmt(Math.round(effDaily()));
   if(isCur){
@@ -431,7 +432,8 @@ function updateDay(){
 }
 function renderDay(){
   const d=getDay();
-  if((d.breaks||[]).length!==renderedBreaks)renderBreakRows();else syncDurs();
+  if((d.breaks||[]).length!==renderedBreaks)renderBreakRows();
+  syncDurs();
   updateDay();
 }
 function updateLive(){
