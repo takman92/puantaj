@@ -25,7 +25,9 @@ h1 b{color:var(--accent)}
 .card h2 .sub{text-transform:none;letter-spacing:0;font-weight:500;font-size:12px}
 .row{display:flex;gap:10px;align-items:center}
 label{font-size:13px;color:var(--muted)}
-input[type=time]{background:var(--card2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:8px 10px;font-size:15px;font-variant-numeric:tabular-nums}
+.time-input{background:var(--card2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:8px 10px;font-size:15px;font-variant-numeric:tabular-nums;width:120px;text-align:center}
+.time-input:focus{outline:none;border-color:var(--accent)}
+.time-input.bad{border-color:var(--red)}
 input[type=number]{background:var(--card2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:7px 8px;font-size:14px;width:64px}
 .exit-box{background:linear-gradient(135deg,var(--accent-dim),transparent 70%),var(--card2);border:1px solid var(--accent);border-radius:12px;padding:14px;text-align:center;margin-top:14px}
 .exit-box .t{font-size:44px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:.02em}
@@ -95,7 +97,7 @@ hr{border:none;border-top:1px solid var(--border);margin:14px 0}
       <h2>Bugün <span class="sub" id="today-date"></span></h2>
       <div class="row" style="justify-content:space-between">
         <label for="entry">Giriş saati</label>
-        <input type="time" id="entry" step="1">
+        <input type="text" id="entry" class="time-input" placeholder="08:35:14" inputmode="numeric" autocomplete="off" spellcheck="false">
       </div>
       <div class="exit-box">
         <div class="l">Akşam çıkış saatin</div>
@@ -176,7 +178,24 @@ const pad=n=>String(n).padStart(2,"0");
 function fmt(sec){sec=Math.max(0,Math.round(sec));return pad(Math.floor(sec/3600))+":"+pad(Math.floor(sec%3600/60))+":"+pad(sec%60);}
 function fmtSigned(sec){const neg=sec<-0.5;sec=Math.abs(Math.round(sec));return (neg?"-":"")+fmt(sec);}
 function toClock(sec){const day=Math.floor(sec/86400);sec=((sec%86400)+86400)%86400;return fmt(sec)+(day>0?" (+1 gün)":"");}
-function parseT(t){if(!t)return null;const p=String(t).split(":").map(Number);if(p.length<2||p.some(isNaN))return null;return p[0]*3600+p[1]*60+(p[2]||0);}
+function parseT(t){if(!t)return null;const p=String(t).split(":").map(Number);if(p.length<2||p.some(isNaN))return null;const h=p[0],m=p[1],s=p.length>2?p[2]:0;if(h>23||m>59||s>59)return null;return h*3600+m*60+s;}
+function maskTime(inp){
+  const d=String(inp.value).replace(/\D/g,"").slice(0,8);
+  let out=d.slice(0,2);
+  if(d.length>2)out+=":"+d.slice(2,4);
+  if(d.length>4)out+=":"+d.slice(4,6);
+  if(inp.value!==out)inp.value=out;
+}
+function timeValid(t){
+  if(!t)return true;
+  if(!String(t).includes(":")&&/^\d{1,2}$/.test(t))return true;
+  const p=String(t).split(":").map(Number);
+  if(p.length<2||p.some(isNaN))return false;
+  if(p[0]>23)return false;
+  if(p.length>2){if(p[1]>59||p[2]>59)return false;}
+  else if(p[1]>59)return false;
+  return true;
+}
 function nowSec(){const d=new Date();return d.getHours()*3600+d.getMinutes()*60+d.getSeconds();}
 function dayKey(y,m,d){return y+"-"+pad(m+1)+"-"+pad(d);}
 function todayKey(){const d=new Date();return dayKey(d.getFullYear(),d.getMonth(),d.getDate());}
@@ -380,12 +399,12 @@ function renderBreakRows(){
   list.innerHTML="";
   (d.breaks||[]).forEach((b,i)=>{
     const row=document.createElement("div");row.className="mola-row";
-    const a=document.createElement("input");a.type="time";a.step=1;a.value=b[0]||"";a.title="Mola başlangıcı";
-    const c=document.createElement("input");c.type="time";c.step=1;c.value=b[1]||"";c.title="Mola bitişi";
+    const a=document.createElement("input");a.type="text";a.className="time-input";a.inputMode="numeric";a.autocomplete="off";a.spellcheck=false;a.placeholder="08:35:14";a.value=b[0]||"";a.title="Mola başlangıcı";
+    const c=document.createElement("input");c.type="text";c.className="time-input";c.inputMode="numeric";c.autocomplete="off";c.spellcheck=false;c.placeholder="08:35:14";c.value=b[1]||"";c.title="Mola bitişi";
     const dur=document.createElement("span");dur.className="dur";dur.textContent="00:00:00";
     const del=document.createElement("button");del.textContent="✕";del.title="Bu molayı sil";
-    const upd=()=>{b[0]=a.value;b[1]=c.value;save();syncDurs();updateDay();};
-    a.addEventListener("input",upd);c.addEventListener("input",upd);
+    const upd=el=>{maskTime(el);el.classList.toggle("bad",el.value!==""&&!timeValid(el.value));b[0]=a.value;b[1]=c.value;save();syncDurs();updateDay();};
+    a.addEventListener("input",()=>upd(a));c.addEventListener("input",()=>upd(c));
     del.addEventListener("click",()=>{d.breaks.splice(i,1);save();renderedBreaks=-1;renderDay();});
     row.append(a,c,dur,del);list.appendChild(row);
   });
@@ -508,7 +527,10 @@ $("add-diff").addEventListener("click",()=>{
   if(inps.length)inps[inps.length-1].focus();
 });
 entryEl.addEventListener("input",()=>{
-  const d=getDay();d.entry=entryEl.value||null;save();updateDay();
+  maskTime(entryEl);
+  const v=entryEl.value;
+  entryEl.classList.toggle("bad",v!==""&&!timeValid(v));
+  const d=getDay();d.entry=v||null;save();updateDay();
 });
 
 (async function init(){
