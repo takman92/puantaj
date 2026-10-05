@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Puantaj — Çalışma Saati Takibi</title>
+<style>
+:root{
+  --bg:#0e1117; --card:#161a23; --card2:#1d2330; --border:#262d3d;
+  --text:#e9edf5; --muted:#8a93a8; --accent:#4d8dff; --accent-dim:rgba(77,141,255,.25);
+  --green:#31d493; --red:#ff6b6b; --amber:#ffb454;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:"Segoe UI",system-ui,sans-serif;background:var(--bg);color:var(--text);padding:20px 20px 40px}
+.wrap{max-width:1150px;margin:0 auto}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:18px}
+h1{font-size:22px;font-weight:700}
+h1 b{color:var(--accent)}
+.clock{font-size:20px;font-weight:600;font-variant-numeric:tabular-nums;text-align:right}
+.clock small{display:block;font-size:11px;color:var(--muted)}
+.grid{display:grid;grid-template-columns:1fr 1.15fr;gap:16px}
+@media(max-width:950px){.grid{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px}
+.card h2{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;gap:10px}
+.card h2 .sub{text-transform:none;letter-spacing:0;font-weight:500;font-size:12px}
+.row{display:flex;gap:10px;align-items:center}
+label{font-size:13px;color:var(--muted)}
+input[type=time]{background:var(--card2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:8px 10px;font-size:15px;font-variant-numeric:tabular-nums}
+input[type=number]{background:var(--card2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:7px 8px;font-size:14px;width:64px}
+.exit-box{background:linear-gradient(135deg,var(--accent-dim),transparent 70%),var(--card2);border:1px solid var(--accent);border-radius:12px;padding:14px;text-align:center;margin-top:14px}
+.exit-box .t{font-size:44px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:.02em}
+.exit-box .l{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em}
+.exit-box .note{margin-top:4px;font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+.chips{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
+.chip{flex:1;min-width:120px;background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;text-align:center}
+.chip .v{font-size:20px;font-weight:600;font-variant-numeric:tabular-nums}
+.chip .k{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-top:2px}
+.mola-list{display:flex;flex-direction:column;gap:8px;margin-top:12px}
+.mola-row{display:flex;gap:8px;align-items:center;background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:8px 10px}
+.mola-row .dur{margin-left:auto;font-variant-numeric:tabular-nums;font-weight:600;color:var(--green);font-size:14px;min-width:88px;text-align:right}
+.mola-row button{background:none;border:none;color:var(--muted);cursor:pointer;font-size:15px;padding:2px 6px;border-radius:6px}
+.mola-row button:hover{color:var(--red);background:rgba(255,107,107,.1)}
+.diff-list{display:flex;flex-direction:column;gap:8px}
+.diff-row{display:flex;gap:8px;align-items:center;background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:8px 10px}
+.diff-input{flex:1;min-width:0;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:8px 10px;font-size:15px;font-variant-numeric:tabular-nums}
+.diff-input:focus{outline:none;border-color:var(--accent)}
+.diff-input.bad{border-color:var(--red)}
+.diff-val{font-variant-numeric:tabular-nums;font-weight:600;font-size:14px;min-width:104px;text-align:right}
+.diff-val.pos{color:var(--green)}
+.diff-val.neg{color:var(--red)}
+.diff-val.zero{color:var(--muted)}
+.diff-row button{background:none;border:none;color:var(--muted);cursor:pointer;font-size:15px;padding:2px 6px;border-radius:6px}
+.diff-row button:hover{color:var(--red);background:rgba(255,107,107,.1)}
+.effline{margin-top:10px;font-size:13px;color:var(--muted);text-align:center}
+.effline b{color:var(--text);font-size:15px;font-variant-numeric:tabular-nums}
+.btn{background:var(--card2);border:1px dashed var(--border);color:var(--muted);border-radius:10px;padding:9px 12px;font-size:13px;cursor:pointer;width:100%;margin-top:10px}
+.btn:hover{color:var(--text);border-color:var(--muted)}
+.btn-solid{background:var(--accent);border:1px solid var(--accent);color:#fff;font-weight:600;width:auto;margin-top:0}
+.btn-solid:hover{filter:brightness(1.12);color:#fff;border-color:var(--accent)}
+.nav{display:flex;align-items:center;gap:6px}
+.nav button{background:var(--card2);border:1px solid var(--border);color:var(--text);width:28px;height:28px;border-radius:8px;cursor:pointer;font-size:14px;line-height:1}
+.nav button:hover{border-color:var(--muted)}
+.nav .name{font-size:14px;font-weight:600;min-width:104px;text-align:center}
+.day-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:8px}
+.day{background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:8px 4px 7px;text-align:center;cursor:pointer;user-select:none;transition:transform .06s,border-color .06s}
+.day:hover{transform:translateY(-1px);border-color:var(--muted)}
+.day .n{font-size:16px;font-weight:600;font-variant-numeric:tabular-nums}
+.day .w{font-size:10px;color:var(--muted);margin-top:2px;letter-spacing:.04em}
+.day.weekend{background:transparent;border-style:dashed}
+.day.weekend .n{color:var(--muted)}
+.day.checked{background:var(--accent);border-color:var(--accent);border-style:solid;color:#fff}
+.day.checked .w{color:rgba(255,255,255,.75)}
+.day.na{opacity:.22;pointer-events:none}
+.day.today{outline:2px solid var(--amber);outline-offset:1px}
+.month-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:16px}
+.month-stats.new{grid-template-columns:repeat(3,1fr);margin-top:10px}
+@media(max-width:500px){.month-stats{grid-template-columns:repeat(2,1fr)}.month-stats.new{grid-template-columns:repeat(2,1fr)}}
+.ms{background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:10px;text-align:center}
+.ms .v{font-size:17px;font-weight:700;font-variant-numeric:tabular-nums}
+.ms .k{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-top:3px}
+.ms.neg .v{color:var(--red)}
+.ms.pos .v{color:var(--green)}
+.hint{font-size:12px;color:var(--muted);line-height:1.5;margin-top:12px}
+hr{border:none;border-top:1px solid var(--border);margin:14px 0}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Puan<b>taj</b></h1>
+    <div class="clock"><span id="now">--:--:--</span><small id="now-date"></small></div>
+  </header>
+  <div class="grid">
+    <div class="card">
+      <h2>Bugün <span class="sub" id="today-date"></span></h2>
+      <div class="row" style="justify-content:space-between">
+        <label for="entry">Giriş saati</label>
+        <input type="time" id="entry" step="1">
+      </div>
+      <div class="exit-box">
+        <div class="l">Akşam çıkış saatin</div>
+        <div class="t" id="exit">--:--:--</div>
+        <div class="note" id="exit-note"></div>
+      </div>
+      <div class="effline">Bugün'de kullanılan günlük süre: <b id="eff-daily">08:30:00</b> <span id="eff-detail"></span></div>
+      <div class="chips">
+        <div class="chip"><div class="v" id="worked">00:00:00</div><div class="k">İşlenen</div></div>
+        <div class="chip"><div class="v" id="remaining">00:00:00</div><div class="k">Kalan</div></div>
+        <div class="chip"><div class="v" id="breaktotal">00:00:00</div><div class="k">Toplam mola</div></div>
+      </div>
+      <h2 style="margin-top:18px">Molalar</h2>
+      <div class="mola-list" id="mola-list"></div>
+      <button class="btn" id="add-break">+ Mola ekle (giriş – çıkış)</button>
+      <div class="hint">Her mola, saniyesi saniyesine işlenen süreden düşülür.<br>Çıkış saati = Giriş + günlük süre + toplam mola.</div>
+    </div>
+    <div class="card">
+      <h2>Aylık Takip
+        <span class="nav">
+          <button id="m-prev" title="Önceki ay">‹</button>
+          <span class="name" id="m-name"></span>
+          <button id="m-next" title="Sonraki ay">›</button>
+        </span>
+      </h2>
+      <div class="day-grid" id="day-grid"></div>
+      <div class="month-stats">
+        <div class="ms"><div class="v" id="ms-weekdays">0</div><div class="k">Hafta içi gün</div></div>
+        <div class="ms"><div class="v" id="ms-target">00:00:00</div><div class="k">Aylık hedef</div></div>
+        <div class="ms"><div class="v" id="ms-worked">00:00:00</div><div class="k">İşlenen</div></div>
+        <div class="ms" id="ms-rem-box"><div class="v" id="ms-remaining">00:00:00</div><div class="k">Kalan</div></div>
+      </div>
+      <div class="month-stats new">
+        <div class="ms"><div class="v" id="mo-remdays">0</div><div class="k">Kalan gün</div></div>
+        <div class="ms"><div class="v" id="mo-dailyavg">08:30:00</div><div class="k">Günlük Ort. Çalışma Sürem</div></div>
+        <div class="ms"><div class="v" id="mo-nowworked">--:--:--</div><div class="k">Şuan İşlenen</div></div>
+        <div class="ms"><div class="v" id="mo-nowremaining">--:--:--</div><div class="k">Şuan Kalan</div></div>
+        <div class="ms"><div class="v" id="mo-required">--:--:--</div><div class="k">Kalan Günde Gerekli</div></div>
+        <div class="ms" id="mo-anim-box"><div class="v" id="mo-anim">--:--:--</div><div class="k">Anlık Kalan (Ay)</div></div>
+      </div>
+      <div class="hint">Günlere tıklayarak işaretle — her işaretli gün, günlük süren kadar (<span id="hint-daily">08:30:00</span>) eklenir.<br>Aylık hedef = o aydaki hafta içi gün sayısı × günlük süre.<br>Kalan Günde Gerekli = Anlık Kalan ÷ (kalan gün − 1) — bugün zaten çalışılıyor, ortalama bugünden sonraki günlere yayılır.</div>
+    </div>
+  </div>
+  <div class="card" style="margin-top:16px">
+    <h2>Günlük Fazla / Eksik <span class="sub" id="df-count">0 kayıt</span></h2>
+    <div class="diff-list" id="diff-list"></div>
+    <button class="btn" id="add-diff">+ Gün ekle (+ fazla / - eksik)</button>
+    <div class="month-stats" style="margin-top:16px">
+      <div class="ms" id="df-sum-box"><div class="v" id="df-sum">+00:00:00</div><div class="k">Toplam fark</div></div>
+      <div class="ms"><div class="v" id="df-rem">0</div><div class="k">Kalan gün (bu ay)</div></div>
+      <div class="ms"><div class="v" id="df-avg">+00:00:00</div><div class="k">Günlük pay (toplam ÷ kalan)</div></div>
+      <div class="ms"><div class="v" id="df-eff">08:30:00</div><div class="k">Etkin günlük süre</div></div>
+    </div>
+    <div class="hint">Her gün hedefe göre fazladan çalıştığını <b style="color:var(--green)">+</b>, eksik çalıştığını <b style="color:var(--red)">-</b> ile yaz. Örnek: <b>+00:45:30</b> veya <b>-01:10:00</b>.<br>Toplam fark, bu ayın kalan gün sayısına bölünerek "Bugün" bölümündeki günlük süreye (çıkış saati ve kalan hesaba) eklenir / düşülür.</div>
+  </div>
+  <div class="card" style="margin-top:16px">
+    <h2>Ayarlar</h2>
+    <div class="row" style="flex-wrap:wrap">
+      <label>Günlük çalışma süresi</label>
+      <input type="number" id="set-h" min="0" max="23" step="1"> <label>saat</label>
+      <input type="number" id="set-m" min="0" max="59" step="1"> <label>dk</label>
+      <input type="number" id="set-s" min="0" max="59" step="1"> <label>sn</label>
+      <button class="btn btn-solid" id="set-save">Kaydet</button>
+    </div>
+    <hr>
+    <div class="row" style="justify-content:space-between;flex-wrap:wrap;gap:10px">
+      <span class="hint" style="margin:0" id="storage-hint"></span>
+      <button class="btn" id="reset" style="width:auto;color:var(--red);border-color:var(--red);margin-top:0">Tüm verileri sıfırla</button>
+    </div>
+  </div>
+</div>
+<script>
+const LS="puantaj.v1";
+const MONTHS=["Ocak","Şubat","Mart","Nisan","Mayıs","Haziran","Temmuz","Ağustos","Eylül","Ekim","Kasım","Aralık"];
+const WD=["PA","PT","SA","ÇA","PE","CU","CA"];
+const pad=n=>String(n).padStart(2,"0");
+
+function fmt(sec){sec=Math.max(0,Math.round(sec));return pad(Math.floor(sec/3600))+":"+pad(Math.floor(sec%3600/60))+":"+pad(sec%60);}
+function fmtSigned(sec){const neg=sec<-0.5;sec=Math.abs(Math.round(sec));return (neg?"-":"")+fmt(sec);}
+function toClock(sec){const day=Math.floor(sec/86400);sec=((sec%86400)+86400)%86400;return fmt(sec)+(day>0?" (+1 gün)":"");}
+function parseT(t){if(!t)return null;const p=String(t).split(":").map(Number);if(p.length<2||p.some(isNaN))return null;return p[0]*3600+p[1]*60+(p[2]||0);}
+function nowSec(){const d=new Date();return d.getHours()*3600+d.getMinutes()*60+d.getSeconds();}
+function dayKey(y,m,d){return y+"-"+pad(m+1)+"-"+pad(d);}
+function todayKey(){const d=new Date();return dayKey(d.getFullYear(),d.getMonth(),d.getDate());}
+
+function load(){
+  try{const s=JSON.parse(localStorage.getItem(LS));if(s&&typeof s.daily==="number")return s;}catch(e){}
+  return {daily:8*3600+30*60,months:{},days:{}};
+}
+let state=load();
+let apiOnline=false,pushTimer=null;
+function isHttp(){const p=window.location.protocol;return p==="http:"||p==="https:";}
+function save(){
+  localStorage.setItem(LS,JSON.stringify(state));
+  if(!isHttp())return;
+  clearTimeout(pushTimer);
+  pushTimer=setTimeout(async()=>{
+    try{
+      const r=await fetch("/state.json",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(state)});
+      apiOnline=r.ok;
+    }catch(e){apiOnline=false;}
+    updateStorageHint();
+  },400);
+}
+async function loadState(){
+  if(!isHttp())return;
+  try{
+    const ctl=new AbortController();
+    const t=setTimeout(()=>ctl.abort(),2000);
+    const r=await fetch("/state.json",{signal:ctl.signal});
+    clearTimeout(t);
+    if(r.ok){
+      const s=await r.json();
+      if(s&&typeof s.daily==="number"){
+        state=s;
+        apiOnline=true;
+        localStorage.setItem(LS,JSON.stringify(state));
+      }
+    }
+  }catch(e){}
+}
+function updateStorageHint(){
+  const el=$("storage-hint");
+  if(!el)return;
+  el.textContent=apiOnline
+    ?"Veriler bu bilgisayara (state.json) kaydediliyor — tüm tarayıcılarda aynı görünür."
+    :"Veriler şu an yalnızca bu tarayıcıda saklanıyor. Ortak görmek için server.py çalıştırıp sayfayı http://localhost:8321 adresinden açın.";
+}
+window.addEventListener("pagehide",()=>{
+  if(apiOnline&&isHttp()&&navigator.sendBeacon){
+    navigator.sendBeacon("/state.json",new Blob([JSON.stringify(state)],{type:"application/json"}));
+  }
+});
+
+let view=(()=>{const d=new Date();return{y:d.getFullYear(),m:d.getMonth()};})();
+let renderedBreaks=-1;
+
+const $=id=>document.getElementById(id);
+const entryEl=$("entry");
+
+function getDay(){
+  if(!state.days[todayKey()])state.days[todayKey()]={entry:null,breaks:[]};
+  return state.days[todayKey()];
+}
+function breakFull(d){
+  let t=0;
+  for(const b of (d.breaks||[])){
+    const a=parseT(b[0]),c=parseT(b[1]);
+    if(a!=null&&c!=null&&c>a)t+=c-a;
+  }
+  return t;
+}
+function breakElapsed(d,now){
+  let t=0;
+  for(const b of (d.breaks||[])){
+    const a=parseT(b[0]);if(a==null)continue;
+    const c=parseT(b[1]);
+    const end=(c!=null&&c>a)?c:now;
+    const eff=Math.min(end,now)-a;
+    if(eff>0)t+=eff;
+  }
+  return t;
+}
+
+function parseDiff(s){
+  if(s==null)return null;
+  let t=String(s).trim();
+  if(!t)return null;
+  let sign=1;
+  if(t[0]==="-"||t[0]==="–"||t[0]==="—"){sign=-1;t=t.slice(1).trim();}
+  else if(t[0]==="+"){t=t.slice(1).trim();}
+  const m=t.match(/^(\d{1,3})[:.](\d{1,2})(?:[:.](\d{1,2}))?$/);
+  if(!m)return null;
+  const h=+m[1],mm=+m[2],ss=m[3]?+m[3]:0;
+  if(mm>59||ss>59)return null;
+  return sign*(h*3600+mm*60+ss);
+}
+function getDiffs(){if(!Array.isArray(state.diffs))state.diffs=[];return state.diffs;}
+function diffStats(){
+  let n=0,sum=0;
+  for(const r of getDiffs()){const v=parseDiff(r);if(v!==null){n++;sum+=v;}}
+  return {n,sum,avg:n?sum/n:0};
+}
+function remainingDays(){
+  const t=new Date(),y=t.getFullYear(),m=t.getMonth();
+  const nd=new Date(y,m+1,0).getDate();
+  let wd=0;
+  for(let d=1;d<=nd;d++){const w=new Date(y,m,d).getDay();if(w>=1&&w<=5)wd++;}
+  const st=state.months[y+"-"+pad(m+1)];
+  return Math.max(0,wd-(st?st.days.length:0));
+}
+function effDaily(){
+  const st=diffStats();
+  const r=remainingDays();
+  return state.daily-(r>0?st.sum/r:0);
+}
+function todayElapsed(){
+  const d=getDay();
+  const entry=parseT(d.entry);
+  if(entry==null)return 0;
+  const now=nowSec();
+  return now-entry-breakElapsed(d,now);
+}
+function updateMonthLive(){
+  const t=new Date();
+  const nd=new Date(view.y,view.m+1,0).getDate();
+  let wd=0;
+  for(let d=1;d<=nd;d++){const w=new Date(view.y,view.m,d).getDay();if(w>=1&&w<=5)wd++;}
+  const stored=state.months[mKey()];
+  const set=new Set(stored?stored.days:[]);
+  let checked=0;for(const x of set)checked++;
+  const remDays=Math.max(0,wd-checked);
+  const base=state.daily;
+  const target=wd*base;
+  const isCur=(view.y===t.getFullYear()&&view.m===t.getMonth());
+  const tElapsed=isCur?todayElapsed():0;
+  const todayChecked=isCur&&set.has(t.getDate());
+  const workedRealtime=checked*base+(todayChecked?0:Math.max(0,tElapsed));
+  const realtimeRemaining=target-workedRealtime;
+  $("mo-remdays").textContent=remDays;
+  $("mo-dailyavg").textContent=fmt(Math.round(effDaily()));
+  if(isCur){
+    $("mo-nowworked").textContent=fmt(Math.max(0,tElapsed));
+    $("mo-nowremaining").textContent=fmtSigned(effDaily()-tElapsed);
+  }else{
+    $("mo-nowworked").textContent="--:--:--";
+    $("mo-nowremaining").textContent="--:--:--";
+  }
+  $("mo-required").textContent=fmtSigned(remDays>1?realtimeRemaining/(remDays-1):(remDays===1?realtimeRemaining:0));
+  $("mo-anim").textContent=fmtSigned(realtimeRemaining);
+  $("mo-anim-box").className="ms"+(realtimeRemaining<0?" neg":realtimeRemaining===0?" pos":"");
+}
+let renderedDiffs=-1;
+function renderDiffRows(){
+  const list=$("diff-list");
+  list.innerHTML="";
+  getDiffs().forEach((raw,i)=>{
+    const row=document.createElement("div");row.className="diff-row";
+    const inp=document.createElement("input");inp.type="text";inp.className="diff-input";inp.value=raw;inp.placeholder="+00:00:00 veya -00:00:00";inp.spellcheck=false;inp.autocapitalize="off";
+    const val=document.createElement("span");val.className="diff-val zero";
+    const del=document.createElement("button");del.textContent="✕";del.title="Bu kaydı sil";
+    const upd=()=>{state.diffs[i]=inp.value;save();syncDiffRows();updateDay();};
+    inp.addEventListener("input",upd);
+    del.addEventListener("click",()=>{state.diffs.splice(i,1);save();renderedDiffs=-1;renderDiffs();updateDay();});
+    row.append(inp,val,del);list.appendChild(row);
+  });
+  renderedDiffs=getDiffs().length;
+}
+function syncDiffRows(){
+  $("diff-list").querySelectorAll(".diff-row").forEach((row,i)=>{
+    const raw=state.diffs[i];if(raw===undefined)return;
+    const v=parseDiff(raw);
+    const val=row.querySelector(".diff-val");
+    const inp=row.querySelector(".diff-input");
+    if(v===null){val.textContent="?";val.className="diff-val zero";inp.classList.add("bad");}
+    else{val.textContent=fmtSigned(v);val.className="diff-val "+(v>0?"pos":v<0?"neg":"zero");inp.classList.remove("bad");}
+  });
+  updateDiffStats();
+}
+function updateDiffStats(){
+  const st=diffStats();
+  const r=remainingDays();
+  const pay=r>0?st.sum/r:0;
+  $("df-count").textContent=st.n+" kayıt";
+  $("df-rem").textContent=r;
+  $("df-sum").textContent=fmtSigned(st.sum);
+  $("df-avg").textContent=fmtSigned(pay);
+  const eff=Math.round(effDaily());
+  $("df-eff").textContent=fmt(eff);
+  $("eff-daily").textContent=fmt(eff);
+  $("eff-detail").textContent=st.n?("= "+fmt(state.daily)+" "+(pay>=0?"-":"+")+fmt(Math.abs(Math.round(pay)))+(r>0?"  (toplam ÷ "+r+" kalan gün)":"  (kalan gün yok)")):"";
+  $("df-sum-box").className="ms"+(st.n?(st.sum>0?" pos":st.sum<0?" neg":""):"");
+}
+function renderDiffs(){
+  if(getDiffs().length!==renderedDiffs)renderDiffRows();
+  syncDiffRows();
+}
+
+function renderBreakRows(){
+  const d=getDay();
+  const list=$("mola-list");
+  list.innerHTML="";
+  (d.breaks||[]).forEach((b,i)=>{
+    const row=document.createElement("div");row.className="mola-row";
+    const a=document.createElement("input");a.type="time";a.step=1;a.value=b[0]||"";a.title="Mola başlangıcı";
+    const c=document.createElement("input");c.type="time";c.step=1;c.value=b[1]||"";c.title="Mola bitişi";
+    const dur=document.createElement("span");dur.className="dur";dur.textContent="00:00:00";
+    const del=document.createElement("button");del.textContent="✕";del.title="Bu molayı sil";
+    const upd=()=>{b[0]=a.value;b[1]=c.value;save();syncDurs();updateDay();};
+    a.addEventListener("input",upd);c.addEventListener("input",upd);
+    del.addEventListener("click",()=>{d.breaks.splice(i,1);save();renderedBreaks=-1;renderDay();});
+    row.append(a,c,dur,del);list.appendChild(row);
+  });
+  renderedBreaks=(d.breaks||[]).length;
+}
+function syncDurs(){
+  const d=getDay();
+  $("mola-list").querySelectorAll(".mola-row").forEach((row,i)=>{
+    const b=(d.breaks||[])[i];if(!b)return;
+    const a=parseT(b[0]),c=parseT(b[1]);
+    row.querySelector(".dur").textContent=(a!=null&&c!=null&&c>a)?fmt(c-a):"00:00:00";
+  });
+}
+function updateDay(){
+  const d=getDay();
+  const entry=parseT(d.entry);
+  const full=breakFull(d);
+  const eff=Math.round(effDaily());
+  $("breaktotal").textContent=fmt(full);
+  const ex=$("exit"),note=$("exit-note");
+  if(entry==null){ex.textContent="--:--:--";note.textContent="Giriş saatini girin";}
+  else{ex.textContent=toClock(entry+eff+full);note.textContent="Giriş "+fmt(entry)+" + "+fmt(eff)+" + "+fmt(full)+" mola";}
+  updateLive();
+}
+function renderDay(){
+  const d=getDay();
+  if((d.breaks||[]).length!==renderedBreaks)renderBreakRows();else syncDurs();
+  updateDay();
+}
+function updateLive(){
+  const d=getDay();
+  const entry=parseT(d.entry);
+  const now=nowSec();
+  const eff=Math.round(effDaily());
+  let worked=0,remaining=eff;
+  if(entry!=null){
+    const e=now-entry-breakElapsed(d,now);
+    worked=Math.max(0,e);
+    remaining=eff-e;
+  }
+  $("worked").textContent=fmt(worked);
+  const remEl=$("remaining");
+  remEl.textContent=fmtSigned(remaining);
+  remEl.style.color=remaining<-0.5?"var(--red)":"";
+  const n=new Date();
+  $("now").textContent=pad(n.getHours())+":"+pad(n.getMinutes())+":"+pad(n.getSeconds());
+  $("now-date").textContent=n.toLocaleDateString("tr-TR",{day:"2-digit",month:"long",year:"numeric",weekday:"long"});
+  updateMonthLive();
+}
+
+function mKey(){return view.y+"-"+pad(view.m+1);}
+function renderMonth(){
+  $("m-name").textContent=MONTHS[view.m]+" "+view.y;
+  $("hint-daily").textContent=fmt(state.daily);
+  const nd=new Date(view.y,view.m+1,0).getDate();
+  const t=new Date(),isCur=t.getFullYear()===view.y&&t.getMonth()===view.m,td=t.getDate();
+  const stored=state.months[mKey()];
+  const set=new Set(stored?stored.days:[]);
+  const grid=$("day-grid");grid.innerHTML="";
+  let wd=0,checked=0;
+  for(let i=1;i<=31;i++){
+    const exists=i<=nd;
+    const wdNum=new Date(view.y,view.m,i).getDay();
+    if(exists&&wdNum>=1&&wdNum<=5)wd++;
+    const cell=document.createElement("div");
+    cell.className="day"+(exists?"":" na")+(wdNum===0||wdNum===6?" weekend":"")+(set.has(i)?" checked":"")+(isCur&&i===td?" today":"");
+    cell.innerHTML='<div class="n">'+i+'</div><div class="w">'+WD[wdNum]+'</div>';
+    if(exists){
+      if(set.has(i))checked++;
+      cell.addEventListener("click",()=>{
+        if(set.has(i))set.delete(i);else set.add(i);
+        state.months[mKey()]={days:[...set]};
+        save();renderMonth();renderDiffs();
+      });
+    }
+    grid.appendChild(cell);
+  }
+  $("ms-weekdays").textContent=wd;
+  $("ms-target").textContent=fmt(wd*state.daily);
+  $("ms-worked").textContent=fmt(checked*state.daily);
+  const rem=wd-checked;
+  $("ms-remaining").textContent=fmtSigned(rem*state.daily);
+  $("ms-rem-box").className="ms"+(rem<0?" neg":rem===0?" pos":"");
+  updateMonthLive();
+}
+$("m-prev").addEventListener("click",()=>{view.m--;if(view.m<0){view.m=11;view.y--;}renderMonth();});
+$("m-next").addEventListener("click",()=>{view.m++;if(view.m>11){view.m=0;view.y++;}renderMonth();});
+
+function loadSet(){
+  $("set-h").value=Math.floor(state.daily/3600);
+  $("set-m").value=Math.floor(state.daily%3600/60);
+  $("set-s").value=state.daily%60;
+}
+$("set-save").addEventListener("click",()=>{
+  const h=Math.max(0,Math.min(23,+$("set-h").value||0));
+  const m=Math.max(0,Math.min(59,+$("set-m").value||0));
+  const s=Math.max(0,Math.min(59,+$("set-s").value||0));
+  state.daily=h*3600+m*60+s;
+  save();renderDay();renderMonth();renderDiffs();
+});
+$("reset").addEventListener("click",()=>{
+  if(confirm("Tüm kayıtlar (gün tikleri, girişler, molalar) silinecek. Emin misiniz?")){
+    localStorage.removeItem(LS);
+    state={daily:8*3600+30*60,months:{},days:{}};
+    renderedBreaks=-1;renderedDiffs=-1;entryEl.value="";
+    save();loadSet();renderDay();renderMonth();renderDiffs();
+  }
+});
+$("add-break").addEventListener("click",()=>{
+  const d=getDay();
+  d.breaks.push(["",""]);
+  save();renderDay();
+  const inputs=$("mola-list").querySelectorAll("input");
+  if(inputs.length)inputs[inputs.length-2].focus();
+});
+$("add-diff").addEventListener("click",()=>{
+  getDiffs().push("");
+  save();renderDiffs();
+  const inps=$("diff-list").querySelectorAll(".diff-input");
+  if(inps.length)inps[inps.length-1].focus();
+});
+entryEl.addEventListener("input",()=>{
+  const d=getDay();d.entry=entryEl.value||null;save();updateDay();
+});
+
+(async function init(){
+  $("today-date").textContent=new Date().toLocaleDateString("tr-TR",{day:"2-digit",month:"long",year:"numeric",weekday:"long"});
+  await loadState();
+  const d=state.days[todayKey()];
+  if(d&&d.entry)entryEl.value=d.entry;
+  loadSet();renderDay();renderMonth();renderDiffs();
+  updateStorageHint();
+  setInterval(updateLive,1000);
+})();
+</script>
+</body>
+</html>
