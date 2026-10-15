@@ -74,6 +74,14 @@ input[type=number]{background:var(--card2);border:1px solid var(--border);color:
 .day.checked .w{color:rgba(255,255,255,.75)}
 .day.na{opacity:.22;pointer-events:none}
 .day.today{outline:2px solid var(--amber);outline-offset:1px}
+.day.holiday{background:rgba(255,180,84,.14);border-color:var(--amber);border-style:solid}
+.day.holiday .n{color:var(--amber)}
+.day.holiday .w{color:var(--amber)}
+.mode{display:flex;gap:4px}
+.mode button{background:var(--card2);border:1px solid var(--border);color:var(--muted);border-radius:8px;padding:5px 8px;font-size:11px;cursor:pointer;font-weight:600}
+.mode button:hover{color:var(--text)}
+.mode button.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.mode button.on.hol{background:var(--amber);border-color:var(--amber);color:#3a2c00}
 .month-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:16px}
 .month-stats.new{grid-template-columns:repeat(3,1fr);margin-top:10px}
 @media(max-width:500px){.month-stats{grid-template-columns:repeat(2,1fr)}.month-stats.new{grid-template-columns:repeat(2,1fr)}}
@@ -117,6 +125,10 @@ hr{border:none;border-top:1px solid var(--border);margin:14px 0}
     </div>
     <div class="card">
       <h2>Aylık Takip
+        <span class="mode">
+          <button id="mode-work" class="on" title="Günleri çalışma olarak işaretle">Çalışma</button>
+          <button id="mode-hol" class="" title="Resmi / şirket tatili işaretle">Tatil</button>
+        </span>
         <span class="nav">
           <button id="m-prev" title="Önceki ay">‹</button>
           <span class="name" id="m-name"></span>
@@ -125,7 +137,7 @@ hr{border:none;border-top:1px solid var(--border);margin:14px 0}
       </h2>
       <div class="day-grid" id="day-grid"></div>
       <div class="month-stats">
-        <div class="ms"><div class="v" id="ms-weekdays">0</div><div class="k">Hafta içi gün</div></div>
+        <div class="ms"><div class="v" id="ms-weekdays">0</div><div class="k" id="ms-wd-label">Hafta içi gün</div></div>
         <div class="ms"><div class="v" id="ms-target">00:00:00</div><div class="k">Aylık hedef</div></div>
         <div class="ms"><div class="v" id="ms-worked">00:00:00</div><div class="k">İşlenen</div></div>
         <div class="ms" id="ms-rem-box"><div class="v" id="ms-remaining">00:00:00</div><div class="k">Kalan</div></div>
@@ -138,7 +150,7 @@ hr{border:none;border-top:1px solid var(--border);margin:14px 0}
         <div class="ms"><div class="v" id="mo-required">--:--:--</div><div class="k">Kalan Günde Gerekli</div></div>
         <div class="ms" id="mo-anim-box"><div class="v" id="mo-anim">--:--:--</div><div class="k">Anlık Kalan (Ay)</div></div>
       </div>
-      <div class="hint">Günlere tıklayarak işaretle — her işaretli gün, günlük süren kadar (<span id="hint-daily">08:30:00</span>) eklenir.<br>Aylık hedef = o aydaki hafta içi gün sayısı × günlük süre.<br>Kalan Günde Gerekli = Anlık Kalan ÷ (kalan gün − 1) — bugün zaten çalışılıyor, ortalama bugünden sonraki günlere yayılır.</div>
+      <div class="hint">Güne tıkla, seçili mod neyse o işaretlenir: <b>Çalışma</b> = gün işlendi (<span id="hint-daily">08:30:00</span> eklenir), <b>Tatil</b> = resmi/şirket tatili (hedeften ve kalan günlerden düşülür).<br>Aylık hedef = (hafta içi gün − tatil) × günlük süre. &nbsp;Kalan Günde Gerekli = Anlık Kalan ÷ (kalan gün − 1).</div>
     </div>
   </div>
   <div class="card" style="margin-top:16px">
@@ -304,7 +316,7 @@ function remainingDays(){
   let wd=0;
   for(let d=1;d<=nd;d++){const w=new Date(y,m,d).getDay();if(w>=1&&w<=5)wd++;}
   const st=state.months[y+"-"+pad(m+1)];
-  return Math.max(0,wd-(st?st.days.length:0));
+  return Math.max(0,wd-holWeekdayCount(y,m)-(st?st.days.length:0));
 }
 function effDaily(){
   const st=diffStats();
@@ -326,9 +338,9 @@ function updateMonthLive(){
   const stored=state.months[mKey()];
   const set=new Set(stored?stored.days:[]);
   let checked=0;for(const x of set)checked++;
-  const remDays=Math.max(0,wd-checked);
+  const remDays=Math.max(0,wd-holWeekdayCount(view.y,view.m)-checked);
   const base=state.daily;
-  const target=wd*base;
+  const target=(wd-holWeekdayCount(view.y,view.m))*base;
   const isCur=(view.y===t.getFullYear()&&view.m===t.getMonth());
   const tElapsed=isCur?todayElapsed():0;
   const todayChecked=isCur&&set.has(t.getDate());
@@ -458,6 +470,21 @@ function updateLive(){
 }
 
 function mKey(){return view.y+"-"+pad(view.m+1);}
+let clickMode="work";
+function setClickMode(mode){
+  clickMode=mode;
+  $("mode-work").className=mode==="work"?"on":"";
+  $("mode-hol").className=mode==="hol"?"on hol":"";
+}
+$("mode-work").addEventListener("click",()=>setClickMode("work"));
+$("mode-hol").addEventListener("click",()=>setClickMode("hol"));
+function holWeekdayCount(y,m){
+  const st=state.months[y+"-"+pad(m+1)];
+  if(!st||!Array.isArray(st.hols))return 0;
+  let n=0;
+  for(const h of st.hols){const w=new Date(y,m,h).getDay();if(w>=1&&w<=5)n++;}
+  return n;
+}
 function renderMonth(){
   $("m-name").textContent=MONTHS[view.m]+" "+view.y;
   $("hint-daily").textContent=fmt(state.daily);
@@ -465,29 +492,40 @@ function renderMonth(){
   const t=new Date(),isCur=t.getFullYear()===view.y&&t.getMonth()===view.m,td=t.getDate();
   const stored=state.months[mKey()];
   const set=new Set(stored?stored.days:[]);
+  const hset=new Set(stored&&Array.isArray(stored.hols)?stored.hols:[]);
   const grid=$("day-grid");grid.innerHTML="";
-  let wd=0,checked=0;
+  let wd=0,checked=0,holWd=0;
   for(let i=1;i<=31;i++){
     const exists=i<=nd;
     const wdNum=new Date(view.y,view.m,i).getDay();
-    if(exists&&wdNum>=1&&wdNum<=5)wd++;
+    const isWd=wdNum>=1&&wdNum<=5;
+    if(exists&&isWd)wd++;
+    if(exists&&isWd&&hset.has(i))holWd++;
     const cell=document.createElement("div");
-    cell.className="day"+(exists?"":" na")+(wdNum===0||wdNum===6?" weekend":"")+(set.has(i)?" checked":"")+(isCur&&i===td?" today":"");
-    cell.innerHTML='<div class="n">'+i+'</div><div class="w">'+WD[wdNum]+'</div>';
+    cell.className="day"+(exists?"":" na")+(wdNum===0||wdNum===6?" weekend":"")+(set.has(i)?" checked":"")+(hset.has(i)?" holiday":"")+(isCur&&i===td?" today":"");
+    cell.innerHTML='<div class="n">'+i+'</div><div class="w">'+(hset.has(i)?"TATİL":WD[wdNum])+'</div>';
     if(exists){
       if(set.has(i))checked++;
       cell.addEventListener("click",()=>{
-        if(set.has(i))set.delete(i);else set.add(i);
-        state.months[mKey()]={days:[...set]};
+        if(clickMode==="work"){
+          if(set.has(i))set.delete(i);else set.add(i);
+          hset.delete(i);
+        }else{
+          if(hset.has(i))hset.delete(i);else hset.add(i);
+          set.delete(i);
+        }
+        state.months[mKey()]={days:[...set],hols:[...hset]};
         save();renderMonth();renderDiffs();
       });
     }
     grid.appendChild(cell);
   }
-  $("ms-weekdays").textContent=wd;
-  $("ms-target").textContent=fmt(wd*state.daily);
+  const net=wd-holWd;
+  $("ms-weekdays").textContent=net;
+  $("ms-wd-label").textContent=holWd?"Hafta içi (−"+holWd+" tatil)":"Hafta içi gün";
+  $("ms-target").textContent=fmt(net*state.daily);
   $("ms-worked").textContent=fmt(checked*state.daily);
-  const rem=wd-checked;
+  const rem=net-checked;
   $("ms-remaining").textContent=fmtSigned(rem*state.daily);
   $("ms-rem-box").className="ms"+(rem<0?" neg":rem===0?" pos":"");
   updateMonthLive();
